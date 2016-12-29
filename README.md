@@ -4,6 +4,7 @@ Leveled execution logs for Go.
 This is an efficient pure Go implementation of leveled logs
 
 Basic examples:
+
 		l := InitLogger()
 		defer CloseLogger()
 		l.SetLogLevel("trace")
