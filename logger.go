@@ -144,9 +144,9 @@ func CloseLogger() {
 
 // print logger config
 func (l *Logger) PrintLogger() {
-	fmt.Printf("logDir<%s>, logName<%s>, level<%s>, maxSize<%d>, maxFileNum<%d>, logMode=%s\n",
+	fmt.Printf("logDir<%s>, logName<%s>, level<%s>, maxSize<%d kb>, maxFileNum<%d>, logMode=%s\n",
 		l.logDir, l.logName, severityName[l.level],
-		l.maxSize, l.maxFileNum,
+		l.maxSize/1024, l.maxFileNum,
 		l.logMode)
 }
 
@@ -437,7 +437,6 @@ func (l *Logger) createLogFile() *syncBuffer {
 			l.writer.Fclose()
 		}
 		name, n := rename(fname, l.keepName[i])
-		fmt.Println(i, l.keepName[i], name, n)
 		l.keepName[n] = name
 	}
 

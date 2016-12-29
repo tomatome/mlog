@@ -27,7 +27,6 @@ func TestUserDefConfig(t *testing.T) {
 	defer CloseLogger()
 	l.SetLogLevel("trace")
 	l.SetLogMode(ToStderr)
-	now := time.Now()
 	l.SetLogHeader(myLogHeader)
 	Ltrace("hello world")
 }
@@ -48,7 +47,7 @@ func TestMaxFileNum(t *testing.T) {
 }
 
 func BenchmarkLog(b *testing.B) {
-	l := InitLogger()
+	InitLogger()
 	defer CloseLogger()
 	for i := 0; i < b.N; i++ {
 		Lerror("this is log num %d", i)
