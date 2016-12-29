@@ -16,7 +16,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//It provides functions Linfo, Lwarn, Lerror, Lfatal
+//It provides functions Ltrace, Ldebug, Linfo, Lwarn, Lerror, Lfatal
 //Basic examples:
 
 //    l := InitLogger()
@@ -24,12 +24,12 @@
 //    l.SetLogLevel("trace")
 //    l.SetLogMode(ToStderr)
 //    l.SetLogDir("/tmp")
-
 //    Ltrace("hello world")
 //    Lerror("this is a test")
 
 // It has two rolling policy: file max size and daily on zero
 // examples:
+
 //    l := InitLogger()
 //    defer CloseLogger()
 //    l.SetMaxFileNum(2)   // default daily on zero
