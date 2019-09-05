@@ -1,7 +1,3 @@
-// logger
-
-//Go support for leveled logs
-//
 // Copyright 2016 @wren. All Rights Reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,27 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//It provides functions Ltrace, Ldebug, Linfo, Lwarn, Lerror, Lfatal
-//Basic examples:
+//It provides functions Trace, Debug, Info, Warn, Error, Fatal
 
-//    l := InitLogger()
-//    defer CloseLogger()
-//    l.SetLogLevel("trace")
-//    l.SetLogMode(ToStderr)
-//    l.SetLogDir("/tmp")
-//    Ltrace("hello world")
-//    Lerror("this is a test")
-
-// It has two rolling policy: file max size and daily on zero
-// examples:
-
-//    l := InitLogger()
-//    defer CloseLogger()
-//    l.SetMaxFileNum(2)   // default daily on zero
-//    l.SetFileMaxSize(4)  // use file max size policy to replace file max size policy
-//
-
-package minilog
+package mlog
 
 import (
 	"bufio"
@@ -70,8 +48,8 @@ const (
 var severityName = []string{
 	traceLevel: "TRACE",
 	debugLevel: "DEBUG",
-	infoLevel:  "INFO ",
-	warnLevel:  "WARN ",
+	infoLevel:  "INFO",
+	warnLevel:  "WARN",
 	errorLevel: "ERROR",
 	fatalLevel: "FATAL",
 }
@@ -127,6 +105,27 @@ var (
 	userName = "unknownuser"
 )
 
+var logMaskList = []string{
+	"LOG_TRACE",
+	"LOG_DEBUG",
+	"LOG_INFO",
+	"LOG_WARNING",
+	"LOG_ERROR",
+	"LOG_FATAL",
+}
+
+func InitLog(dir, mask string, stderr Mode) {
+	logger.SetLogDir(dir)
+	logger.SetLogMode(stderr)
+
+	for i, name := range logMaskList {
+		if name == mask {
+			logger.level = severity(i)
+			break
+		}
+	}
+
+}
 func init() {
 	h, err := os.Hostname()
 	if err == nil {
@@ -140,6 +139,7 @@ func init() {
 
 	// Sanitize userName since it may contain filepath separators on Windows.
 	userName = strings.Replace(userName, `\`, "_", -1)
+	InitLogger()
 }
 
 func shortHostname(hostname string) string {
@@ -163,12 +163,15 @@ func severityByName(s string) severity {
 func InitLogger() *Logger {
 	l := new(Logger)
 	l.maxSize = 0
-	l.maxFileNum = 1
-	l.level = warnLevel
-	l.logDir = os.TempDir()
-	l.logMode = 0
+	l.maxFileNum = 5
+	l.level = infoLevel
+	l.logDir = "."
+	l.logMode = ToStderr
 	l.prevLog = new(lastLog)
-	l.logName = program + ".log." + host
+	if strings.HasSuffix(program, ".exe") {
+		program = program[:len(program)-4]
+	}
+	l.logName = program + "." + host + ".log"
 	l.SetLogHeader(l.formatHeader)
 	l.nBytes = 0
 	logger = l
@@ -211,6 +214,14 @@ func (l *Logger) getMaxFileNum() int {
 }
 
 // log level
+func SetLogLevel(level string) {
+	for i, name := range logMaskList {
+		if name == level {
+			logger.level = severity(i)
+			break
+		}
+	}
+}
 func (l *Logger) SetLogLevel(level string) {
 	l.level = severityByName(level)
 }
@@ -265,6 +276,9 @@ func (l *Logger) SetLogDir(logDir string) {
 func (l *Logger) getLogDir() string {
 	return l.logDir
 }
+func SetLogDir(logDir string) {
+	logger.SetLogDir(logDir)
+}
 
 // log mode
 func (l *Logger) SetLogMode(logMode Mode) {
@@ -272,6 +286,9 @@ func (l *Logger) SetLogMode(logMode Mode) {
 }
 func (l *Logger) getLogMode() Mode {
 	return l.logMode
+}
+func SetLogMode(logMode Mode) {
+	logger.SetLogMode(logMode)
 }
 func (l *Logger) isLogFileMode() bool {
 	if (l.logMode & ToFile) != 0 {
@@ -346,7 +363,7 @@ type logBuffer struct {
 // get log filename, funcname and line number
 func GetLogFileLine(depth int) (string, string, int) {
 	var funcName string
-	pc, file, line, ok := runtime.Caller(3 + depth)
+	pc, file, line, ok := runtime.Caller(1 + depth)
 	if !ok {
 		funcName = "unknow"
 		file = "???"
@@ -371,46 +388,86 @@ func (l *Logger) formatHeader(level string) string {
 	hour, minute, second := now.Clock()
 	usec := now.Nanosecond() / 1000000
 
-	_, file, line := GetLogFileLine(2)
-	// yy-mm-dd hh:mm:ss.uuuu level pid file[line]:
-	header := fmt.Sprintf("%04d-%02d-%02d %02d:%02d:%02d.%04d [%s] %d %s[%d]",
+	fun, file, line := GetLogFileLine(3)
+	// yy-mm-dd hh:mm:ss.uuuu [level] [pid] (file func:line):
+	header := fmt.Sprintf("%04d-%02d-%02d %02d:%02d:%02d.%04d [%s] [%d] (%s %s:%d)",
 		year, month, day, hour, minute, second, usec,
-		level, os.Getpid(), file, line)
+		level, os.Getpid(), file, fun, line)
 
 	return header
 }
 
 // Trace
-func Ltrace(format string, args ...interface{}) {
-	logger.println(traceLevel, format, args...)
+func Trace(args ...interface{}) {
+	logger.println(traceLevel, args...)
+}
+func Tracef(format string, args ...interface{}) {
+	logger.printf(traceLevel, format, args...)
 }
 
 // Debug
-func Ldebug(format string, args ...interface{}) {
-	logger.println(debugLevel, format, args...)
+func Debug(args ...interface{}) {
+	logger.println(debugLevel, args...)
+}
+func Debugf(format string, args ...interface{}) {
+	logger.printf(debugLevel, format, args...)
 }
 
 // Info
-func Linfo(format string, args ...interface{}) {
-	logger.println(infoLevel, format, args...)
+func Info(args ...interface{}) {
+	logger.println(infoLevel, args...)
+}
+func Infof(format string, args ...interface{}) {
+	logger.printf(infoLevel, format, args...)
 }
 
 // Warning
-func Lwarn(format string, args ...interface{}) {
-	logger.println(warnLevel, format, args...)
+func Warn(args ...interface{}) {
+	logger.println(warnLevel, args...)
+}
+func Warnf(format string, args ...interface{}) {
+	logger.printf(warnLevel, format, args...)
 }
 
 // Error
-func Lerror(format string, args ...interface{}) {
-	logger.println(errorLevel, format, args...)
+func Error(args ...interface{}) {
+	logger.println(errorLevel, args...)
+}
+func Errorf(format string, args ...interface{}) {
+	logger.printf(errorLevel, format, args...)
 }
 
 // Fatal
-func Lfatal(format string, args ...interface{}) {
-	logger.println(fatalLevel, format, args...)
+func Fatal(args ...interface{}) {
+	logger.println(fatalLevel, args...)
+}
+func Fatalf(format string, args ...interface{}) {
+	logger.printf(fatalLevel, format, args...)
 }
 
-func (l *Logger) println(s severity, format string, args ...interface{}) {
+func (l *Logger) println(s severity, args ...interface{}) {
+	if l.level > s && s < numSeverity {
+		return
+	}
+
+	header := l.callHeader(severityName[s])
+	message := fmt.Sprint(args...)
+
+	// equal prev log message
+	if l.prevLog.repeatLog == message {
+		l.prevLog.repeatNum++
+		l.prevLog.lastHeader = header
+		return
+	} else {
+		l.printLastLog()
+		l.prevLog.repeatLog = message
+		l.prevLog.lastHeader = header
+		l.prevLog.repeatNum = 0
+	}
+
+	l.output(header, message)
+}
+func (l *Logger) printf(s severity, format string, args ...interface{}) {
 	if l.level > s && s < numSeverity {
 		return
 	}
@@ -477,7 +534,7 @@ func (l *Logger) createLogFile() *syncBuffer {
 		l.keepName[n] = name
 	}
 
-	f, err := os.Create(fname)
+	f, err := os.OpenFile(fname, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		fmt.Printf("can't create log file<%s>\n", fname)
 		os.Exit(-1)
