@@ -1,5 +1,5 @@
 // logger_test
-package minilog
+package mlog
 
 import (
 	"fmt"
