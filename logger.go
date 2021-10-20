@@ -36,22 +36,22 @@ var logger *Logger
 type severity int
 
 const (
-	traceLevel severity = iota
-	debugLevel
-	infoLevel
-	warnLevel
-	errorLevel
-	fatalLevel
-	numSeverity = 6
+	TRACE severity = iota
+	DEBUG
+	INFO
+	WARN
+	ERROR
+	FATAL
+	NumSeverity
 )
 
 var severityName = []string{
-	traceLevel: "TRACE",
-	debugLevel: "DEBUG",
-	infoLevel:  "INFO",
-	warnLevel:  "WARN",
-	errorLevel: "ERROR",
-	fatalLevel: "FATAL",
+	TRACE: "TRACE",
+	DEBUG: "DEBUG",
+	INFO:  "INFO",
+	WARN:  "WARN",
+	ERROR: "ERROR",
+	FATAL: "FATAL",
 }
 
 type Mode int
@@ -65,13 +65,13 @@ const (
 func (m Mode) String() string {
 	switch m {
 	case ToFile:
-		return "log to file"
+		return "Log to file"
 	case ToStderr:
-		return "print to stderr"
+		return "Print to stderr"
 	case AlsoToStderr:
-		return "log to file and print to stderr"
+		return "Log to file and print to stderr"
 	default:
-		return "unknow log mode"
+		return "Unknown"
 	}
 }
 
@@ -105,27 +105,6 @@ var (
 	userName = "unknownuser"
 )
 
-var logMaskList = []string{
-	"LOG_TRACE",
-	"LOG_DEBUG",
-	"LOG_INFO",
-	"LOG_WARNING",
-	"LOG_ERROR",
-	"LOG_FATAL",
-}
-
-func InitLog(dir, mask string, stderr Mode) {
-	logger.SetLogDir(dir)
-	logger.SetLogMode(stderr)
-
-	for i, name := range logMaskList {
-		if name == mask {
-			logger.level = severity(i)
-			break
-		}
-	}
-
-}
 func init() {
 	h, err := os.Hostname()
 	if err == nil {
@@ -156,7 +135,7 @@ func severityByName(s string) severity {
 			return severity(i)
 		}
 	}
-	return warnLevel
+	return WARN
 }
 
 // init logger for log
@@ -164,7 +143,7 @@ func InitLogger() *Logger {
 	l := new(Logger)
 	l.maxSize = 0
 	l.maxFileNum = 5
-	l.level = infoLevel
+	l.level = INFO
 	l.logDir = "."
 	l.logMode = ToStderr
 	l.prevLog = new(lastLog)
@@ -229,37 +208,37 @@ func (l *Logger) getLogLevel() severity {
 	return l.level
 }
 func (l *Logger) IsLogFatal() bool {
-	if l.level == fatalLevel {
+	if l.level == FATAL {
 		return true
 	}
 	return false
 }
 func (l *Logger) IsLogError() bool {
-	if l.level == errorLevel {
+	if l.level == ERROR {
 		return true
 	}
 	return false
 }
 func (l *Logger) IsLogWarn() bool {
-	if l.level == warnLevel {
+	if l.level == WARN {
 		return true
 	}
 	return false
 }
 func (l *Logger) IsLogInfo() bool {
-	if l.level == infoLevel {
+	if l.level == INFO {
 		return true
 	}
 	return false
 }
 func (l *Logger) IsLogDebug() bool {
-	if l.level == debugLevel {
+	if l.level == DEBUG {
 		return true
 	}
 	return false
 }
 func (l *Logger) IsLogTrace() bool {
-	if l.level == traceLevel {
+	if l.level == TRACE {
 		return true
 	}
 	return false
@@ -399,54 +378,54 @@ func (l *Logger) formatHeader(level string) string {
 
 // Trace
 func Trace(args ...interface{}) {
-	logger.println(traceLevel, args...)
+	logger.println(TRACE, args...)
 }
 func Tracef(format string, args ...interface{}) {
-	logger.printf(traceLevel, format, args...)
+	logger.printf(TRACE, format, args...)
 }
 
 // Debug
 func Debug(args ...interface{}) {
-	logger.println(debugLevel, args...)
+	logger.println(DEBUG, args...)
 }
 func Debugf(format string, args ...interface{}) {
-	logger.printf(debugLevel, format, args...)
+	logger.printf(DEBUG, format, args...)
 }
 
 // Info
 func Info(args ...interface{}) {
-	logger.println(infoLevel, args...)
+	logger.println(INFO, args...)
 }
 func Infof(format string, args ...interface{}) {
-	logger.printf(infoLevel, format, args...)
+	logger.printf(INFO, format, args...)
 }
 
 // Warning
 func Warn(args ...interface{}) {
-	logger.println(warnLevel, args...)
+	logger.println(WARN, args...)
 }
 func Warnf(format string, args ...interface{}) {
-	logger.printf(warnLevel, format, args...)
+	logger.printf(WARN, format, args...)
 }
 
 // Error
 func Error(args ...interface{}) {
-	logger.println(errorLevel, args...)
+	logger.println(ERROR, args...)
 }
 func Errorf(format string, args ...interface{}) {
-	logger.printf(errorLevel, format, args...)
+	logger.printf(ERROR, format, args...)
 }
 
 // Fatal
 func Fatal(args ...interface{}) {
-	logger.println(fatalLevel, args...)
+	logger.println(FATAL, args...)
 }
 func Fatalf(format string, args ...interface{}) {
-	logger.printf(fatalLevel, format, args...)
+	logger.printf(FATAL, format, args...)
 }
 
 func (l *Logger) println(s severity, args ...interface{}) {
-	if l.level > s && s < numSeverity {
+	if l.level > s && s < NumSeverity {
 		return
 	}
 
@@ -468,7 +447,7 @@ func (l *Logger) println(s severity, args ...interface{}) {
 	l.output(header, message)
 }
 func (l *Logger) printf(s severity, format string, args ...interface{}) {
-	if l.level > s && s < numSeverity {
+	if l.level > s && s < NumSeverity {
 		return
 	}
 
